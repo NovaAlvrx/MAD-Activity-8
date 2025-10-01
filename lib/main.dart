@@ -34,11 +34,16 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData.light(), // Light theme configuration
       darkTheme: ThemeData.dark(), // Dark theme configuration
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light, // Apply theme based on _isDarkMode
-      home: FadingTextAnimation(
-        toggleTheme: _toggleTheme, // Pass toggle function to child widget
-      ),
-    );
-  }
+      home: PageView(
+        children: [
+        FadingTextAnimation(
+          toggleTheme: _toggleTheme,
+        ),
+        SecondScreen(), // <-- new screen
+      ],
+    ),
+  );
+}
 }
 
 
@@ -58,12 +63,60 @@ class _FadingTextAnimationState extends State<FadingTextAnimation> {
   // Controls visibility of the text for fade animation
   bool _isVisible = true;
 
+    // State variable for text color
+  Color _textColor = Colors.black;
+
   // Toggle the visibility state to trigger fade animation
   void toggleVisibility() {
     setState(() {
       _isVisible = !_isVisible;
     });
   }
+  
+    // Helper for color picker dialog
+  void _showColorPickerDialog() async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Pick a text color'),
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _colorOption(Colors.black),
+              _colorOption(Colors.red),
+              _colorOption(Colors.green),
+              _colorOption(Colors.blue),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _colorOption(Color color) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _textColor = color;
+        });
+        Navigator.of(context).pop();
+      },
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.grey.shade400,
+            width: _textColor == color ? 3 : 1,
+          ),
+        ),
+      ),
+    );
+  }
+
 
   // Build the UI with animated fading text, buttons to toggle visibility and theme
   @override
@@ -89,7 +142,10 @@ class _FadingTextAnimationState extends State<FadingTextAnimation> {
               duration: Duration(seconds: 1),
               child: Text(
                 'Hello, Flutter!',
-                style: TextStyle(fontSize: 24),
+                style: TextStyle(
+                  fontSize: 24,
+                  color: _textColor, // <-- apply chosen color
+                ),
               ),
             ),
             SizedBox(height: 16),
@@ -97,6 +153,13 @@ class _FadingTextAnimationState extends State<FadingTextAnimation> {
             ElevatedButton(
               onPressed: widget.toggleTheme,
               child: Text("Toggle Theme"),
+            ),
+            SizedBox(height: 16),
+            IconButton(
+              iconSize: 40,
+              icon: Icon(Icons.color_lens),
+              onPressed: _showColorPickerDialog,
+              color: _textColor,
             ),
           ],
         ),
@@ -117,6 +180,59 @@ class _FadingTextAnimationState extends State<FadingTextAnimation> {
             child: Icon(Icons.brightness_6),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class SecondScreen extends StatefulWidget {
+  @override
+  _SecondScreenState createState() => _SecondScreenState();
+}
+
+class _SecondScreenState extends State<SecondScreen> {
+  final List<String> _images = [
+    'assets/lebron1.png',
+    'assets/lebron2.png',
+    'assets/lebron3.png',
+  ];
+
+  int _currentIndex = 0;
+  bool _visible = true;
+
+  void _nextImage() {
+    setState(() {
+      _visible = false; // fade out current image
+    });
+
+    // After fade-out, switch image and fade back in
+    Future.delayed(Duration(milliseconds: 500), () {
+      setState(() {
+        _currentIndex = (_currentIndex + 1) % _images.length;
+        _visible = true; // fade in new image
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Photo Fader")),
+      body: Center(
+        child: AnimatedOpacity(
+          opacity: _visible ? 1.0 : 0.0,
+          duration: Duration(seconds: 2), // longer fade duration
+          child: Image.asset(
+            _images[_currentIndex],
+            width: 300,
+            height: 300,
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _nextImage,
+        child: Icon(Icons.image),
       ),
     );
   }
